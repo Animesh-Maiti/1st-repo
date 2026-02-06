@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N 4
+
+// Structure for a state node
+struct Node {
+    struct Node* parent;
+    int mat[N][N];
+    int x, y;         // Blank tile coordinates
+    int cost;        // Misplaced tiles
+    int level;       // Depth of node
+    char move[10];   // Name of the move performed
+};
+
+// Function to print the matrix with the move description
+void printStep(struct Node* node) {
+    if (node->parent == NULL) {
+        printf("Initial State:\n");
+    } else {
+        printf("Move: %s (Level %d)\n", node->move, node->level);
+    }
+    
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            if (node->mat[i][j] == 0) printf(" _ "); // Visual blank
+            else printf("%2d ", node->mat[i][j]);
+        }
+        printf("\n");
+    }
+    printf("Cost (h): %d\n", node->cost);
+    printf("-----------------\n");
+}
+
+// Calculate misplaced tiles (Heuristic)
+int calculateCost(int mat[N][N], int goal[N][N]) {
+    int count = 0;
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            if (mat[i][j] != 0 && mat[i][j] != goal[i][j]) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// Create a new node and perform the tile swap
+struct Node* createNode(int mat[N][N], int x, int y, int newX, int newY, 
+                        int level, struct Node* parent, char* moveName, int goal[N][N]) {
+    struct Node* node = (struct Node*)malloc(sizeof(struct Node));
+    node->parent = parent;
+    memcpy(node->mat, mat, sizeof(node->mat));
+
+    // Swap blank tile (0) with target tile
+    int temp = node->mat[x][y];
+    node->mat[x][y] = node->mat[newX][newY];
+    node->mat[newX][newY] = temp;
+
+    node->level = level;
+    node->cost = calculateCost(node->mat, goal);
+    node->x = newX;
+    node->y = newY;
+    strcpy(node->move, moveName);
+
+    return node;
+}
+
+// Recursively print the path from root to current node
+void printPath(struct Node* root) {
+    if (root == NULL) return;
+    printPath(root->parent);
+    printStep(root);
+}
+
+int main() {
+    // Goal state as shown on your board
+    int goal[N][N] = {
+        {1, 2, 3, 4},
+        {5, 6, 7, 8},
+        {9, 10, 11, 12},
+        {13, 14, 15, 0}
+    };
+
+    // Initial state based on the "Right Shift" branch of your board
+    // 0 represents the blank tile
+    int initial[N][N] = {
+        {1, 2, 3, 4},
+        {5, 6, 7, 8},
+        {9, 10, 11, 0},
+        {13, 14, 15, 12}
+    };
+
+    // Initial blank position (row 2, col 3)
+    int x = 2, y = 3;
+
+    printf("--- 15-Puzzle Branch & Bound Execution ---\n\n");
+
+    // Root Node
+    struct Node* root = createNode(initial, x, y, x, y, 0, NULL, "None", goal);
+
+    // Simulated "Down Shift" move leading to goal as seen on board
+    // In a real solver, these would be chosen by a Priority Queue
+    struct Node* step1 = createNode(root->mat, root->x, root->y, 3, 3, 1, root, "Down Shift", goal);
+
+    // Print the sequence
+    printPath(step1);
+
+    if (step1->cost == 0) {
+        printf("GOAL STATE REACHED!\n");
+    }
+
+    return 0;
+}
